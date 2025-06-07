@@ -1,0 +1,40 @@
+# Go
+/bin/
+/obj/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go modules
+/vendor/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+
+# Node / React frontend
+/frontend 2/node_modules/
+/frontend 2/build/
+/frontend 2/.env
+
+# Docker
+docker-compose.override.yml
+*.env
+
+# MacOS
+.DS_Store
+
+# Other
+*.zip
+*.tar.gz
