@@ -24,9 +24,9 @@
 *.temp
 
 # Node / React frontend
-/frontend 2/node_modules/
-/frontend 2/build/
-/frontend 2/.env
+/frontend/node_modules/
+/frontend/build/
+/frontend/.env
 
 # Docker
 docker-compose.override.yml
