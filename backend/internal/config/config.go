@@ -1,39 +1,43 @@
 package config
 
 import (
+	"io"
+	"log"
 	"os"
-	"strconv"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	ServerPort     string
-	InitialWorkers int
-	QueueSize      int
-	LogLevel       string
+	ServerPort     string `yaml:"server_port"`
+	InitialWorkers int    `yaml:"initial_workers"`
+	QueueSize      int    `yaml:"queue_size"`
+	LogLevel       string `yaml:"log_level"`
 }
 
-// Load загружает конфигурацию из переменных окружения с дефолтами
-func MustLoad() Config {
-	return Config{
-		ServerPort:     getEnv("SERVER_PORT", "8080"),
-		InitialWorkers: getEnvAsInt("INITIAL_WORKERS", 5),
-		QueueSize:      getEnvAsInt("QUEUE_SIZE", 10000),
-		LogLevel:       getEnv("LOG_LEVEL", "INFO"),
+func MustLoad(path string) Config {
+	cfg := Config{
+		ServerPort:     "8080",
+		InitialWorkers: 5,
+		QueueSize:      10000,
+		LogLevel:       "INFO",
 	}
-}
 
-func getEnv(key string, defaultVal string) string {
-	if val, ok := os.LookupEnv(key); ok {
-		return val
+	file, err := os.Open(path)
+	if err != nil {
+		log.Fatalf("cannot open config file: %v", err)
 	}
-	return defaultVal
-}
+	defer file.Close()
 
-func getEnvAsInt(name string, defaultVal int) int {
-	if valStr, ok := os.LookupEnv(name); ok {
-		if val, err := strconv.Atoi(valStr); err == nil {
-			return val
-		}
+	data, err := io.ReadAll(file)
+	if err != nil {
+		log.Fatalf("cannot read config file: %v", err)
 	}
-	return defaultVal
+
+	err = yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		log.Fatalf("cannot parse config file: %v", err)
+	}
+
+	return cfg
 }
