@@ -25,9 +25,11 @@ func main() {
 	slog.Info("Starting server", "port", cfg.ServerPort)
 
 	manager := workermanager.New(cfg.QueueSize)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	for i := 0; i < cfg.InitialWorkers; i++ {
-		manager.AddWorker()
+		manager.AddWorkerWithContext(ctx)
 	}
 
 	r := gin.New()
@@ -41,7 +43,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
-	apiSrv := api.NewAPI(manager)
+	apiSrv := api.NewAPI(ctx, manager)
 	apiSrv.RegisterRoutes(r)
 
 	srv := &http.Server{
@@ -60,13 +62,13 @@ func main() {
 	<-quit
 
 	slog.Info("Shutting down server...")
-
-	manager.StopAll()
+	cancel()
+	//manager.StopAll()
 	manager.Wait()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	ctxShutdown, cancelShatdown := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelShatdown()
+	if err := srv.Shutdown(ctxShutdown); err != nil {
 		manager.CloseInput()
 		slog.Error("Server forced to shutdown", "error", err)
 	}

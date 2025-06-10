@@ -13,7 +13,8 @@ type Manager struct {
 	mu                sync.RWMutex
 	wg                sync.WaitGroup
 	counter           atomic.Uint32
-	cancelMap         map[int]context.CancelFunc
+	workerIdCounter   atomic.Uint32
+	cancelMap         map[uint32]context.CancelFunc
 	input             chan string
 	messagesProcessed atomic.Uint32
 	messagesTotal     atomic.Uint32
@@ -22,17 +23,18 @@ type Manager struct {
 
 func New(queueSize int) *Manager {
 	return &Manager{
-		cancelMap: make(map[int]context.CancelFunc),
+		cancelMap: make(map[uint32]context.CancelFunc),
 		input:     make(chan string, queueSize),
 	}
 }
 
-func (m *Manager) AddWorker() {
+func (m *Manager) AddWorkerWithContext(parentCtx context.Context) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	id := int(m.counter.Add(1)) - 1
+	ctx, cancel := context.WithCancel(parentCtx)
+	id := m.workerIdCounter.Add(1) - 1
+	m.counter.Add(1)
 	m.cancelMap[id] = cancel
 
 	m.wg.Add(1)
@@ -50,7 +52,7 @@ func (m *Manager) RemoveWorker() bool {
 		return false
 	}
 
-	var lastID int
+	var lastID uint32
 	for id := range m.cancelMap {
 		if id > lastID {
 			lastID = id
@@ -59,7 +61,7 @@ func (m *Manager) RemoveWorker() bool {
 
 	m.cancelMap[lastID]()
 	delete(m.cancelMap, lastID)
-	m.counter.Add(1)
+	m.counter.Add(^uint32(0))
 	slog.Info("Removed worker", "id", lastID)
 	return true
 }
@@ -70,9 +72,10 @@ func (m *Manager) StopAll() {
 
 	for id, cancel := range m.cancelMap {
 		cancel()
+		m.counter.Add(^uint32(0))
 		slog.Info("Stopped worker via StopAll", "id", id)
 	}
-	m.cancelMap = make(map[int]context.CancelFunc)
+	m.cancelMap = make(map[uint32]context.CancelFunc)
 }
 
 func (m *Manager) CloseInput() {
@@ -106,7 +109,7 @@ func (m *Manager) Wait() {
 	m.wg.Wait()
 }
 
-func (m *Manager) worker(ctx context.Context, id int) {
+func (m *Manager) worker(ctx context.Context, id uint32) {
 	defer m.wg.Done()
 
 	for {
@@ -119,7 +122,7 @@ func (m *Manager) worker(ctx context.Context, id int) {
 				slog.Info("Input channel closed, worker exiting", "id", id)
 				return
 			}
-			m.counter.Add(1)
+			m.messagesProcessed.Add(1)
 			slog.Info("Worker received message", "worker_id", id, "msg", msg)
 			// Имитация обработки
 			time.Sleep(500 * time.Millisecond)

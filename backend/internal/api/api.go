@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
@@ -12,10 +13,11 @@ import (
 
 type API struct {
 	manager workermanager.WorkerManager
+	ctx     context.Context
 }
 
-func NewAPI(manager workermanager.WorkerManager) *API {
-	return &API{manager: manager}
+func NewAPI(ctx context.Context, manager workermanager.WorkerManager) *API {
+	return &API{manager: manager, ctx: ctx}
 }
 
 func (api *API) RegisterRoutes(r *gin.Engine) {
@@ -35,7 +37,7 @@ func (api *API) AddWorkers(c *gin.Context) {
 	}
 
 	for i := 0; i < count; i++ {
-		api.manager.AddWorker()
+		api.manager.AddWorkerWithContext(api.ctx)
 	}
 	slog.Info("Added workers via API", "count", count)
 	c.JSON(http.StatusOK, gin.H{"message": "workers added", "count": count})

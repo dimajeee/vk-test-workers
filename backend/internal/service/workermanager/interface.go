@@ -1,7 +1,9 @@
 package workermanager
 
+import "context"
+
 type WorkerManager interface {
-	AddWorker()
+	AddWorkerWithContext(ctx context.Context)
 	RemoveWorker() bool
 	Send(msg string) bool
 	Stats() (workerCount int, queueLength int)
