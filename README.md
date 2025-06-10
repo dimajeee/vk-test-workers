@@ -31,15 +31,15 @@ Docker Compose:
     git clone https://github.com/dimajeee/vk-test-workers
     cd vk-test-workers
 
-Запуск через docker-compose:
+Запуск через docker-compose
 docker-compose up --build
 
-Запуск backend без docker:
+Запуск backend без docker
 cd backend
 go build -o vk-worker ./cmd/backend
 ./vk-worker
 
-Запуск frontend без docker:
+Запуск frontend без docker
 cd frontend
 npm install
 npm start
