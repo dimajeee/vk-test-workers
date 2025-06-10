@@ -10,13 +10,13 @@ import (
 )
 
 type Manager struct {
-	mu                sync.Mutex
+	mu                sync.RWMutex
 	wg                sync.WaitGroup
-	counter           int
+	counter           atomic.Uint32
 	cancelMap         map[int]context.CancelFunc
 	input             chan string
-	messagesProcessed int64
-	messagesTotal     int64
+	messagesProcessed atomic.Uint32
+	messagesTotal     atomic.Uint32
 	closed            bool
 }
 
@@ -32,8 +32,7 @@ func (m *Manager) AddWorker() {
 	defer m.mu.Unlock()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	id := m.counter
-	m.counter++
+	id := int(m.counter.Add(1)) - 1
 	m.cancelMap[id] = cancel
 
 	m.wg.Add(1)
@@ -60,6 +59,7 @@ func (m *Manager) RemoveWorker() bool {
 
 	m.cancelMap[lastID]()
 	delete(m.cancelMap, lastID)
+	m.counter.Add(1)
 	slog.Info("Removed worker", "id", lastID)
 	return true
 }
@@ -87,7 +87,7 @@ func (m *Manager) CloseInput() {
 func (m *Manager) Send(msg string) bool {
 	select {
 	case m.input <- msg:
-		atomic.AddInt64(&m.messagesTotal, 1)
+		m.messagesTotal.Add(1)
 		slog.Debug("Sent message", "msg", msg)
 		return true
 	default:
@@ -97,8 +97,8 @@ func (m *Manager) Send(msg string) bool {
 }
 
 func (m *Manager) Stats() (int, int) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return len(m.cancelMap), len(m.input)
 }
 
@@ -119,7 +119,7 @@ func (m *Manager) worker(ctx context.Context, id int) {
 				slog.Info("Input channel closed, worker exiting", "id", id)
 				return
 			}
-			atomic.AddInt64(&m.messagesProcessed, 1)
+			m.counter.Add(1)
 			slog.Info("Worker received message", "worker_id", id, "msg", msg)
 			// Имитация обработки
 			time.Sleep(500 * time.Millisecond)
@@ -130,18 +130,18 @@ func (m *Manager) worker(ctx context.Context, id int) {
 type Stats struct {
 	Workers           int
 	QueueLength       int
-	MessagesProcessed int64
-	MessagesTotal     int64
+	MessagesProcessed int
+	MessagesTotal     int
 }
 
 func (m *Manager) GetStats() Stats {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	return Stats{
-		Workers:           m.counter,
+		Workers:           int(m.counter.Load()),
 		QueueLength:       len(m.input),
-		MessagesProcessed: m.messagesProcessed,
-		MessagesTotal:     m.messagesTotal,
+		MessagesProcessed: int(m.messagesProcessed.Load()),
+		MessagesTotal:     int(m.messagesTotal.Load()),
 	}
 }
