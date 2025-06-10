@@ -130,13 +130,6 @@ func (m *Manager) worker(ctx context.Context, id uint32) {
 	}
 }
 
-type Stats struct {
-	Workers           int
-	QueueLength       int
-	MessagesProcessed int
-	MessagesTotal     int
-}
-
 func (m *Manager) GetStats() Stats {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
