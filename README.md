@@ -32,14 +32,14 @@ Docker Compose:
     cd vk-test-workers
 
 Запуск через docker-compose:
-    docker-compose up --build
+docker-compose up --build
 
 Запуск backend без docker:
-    cd backend
-    go build -o vk-worker ./cmd/backend
-    ./vk-worker
+cd backend
+go build -o vk-worker ./cmd/backend
+./vk-worker
 
 Запуск frontend без docker:
-    cd frontend
-    npm install
-    npm start
+cd frontend
+npm install
+npm start
