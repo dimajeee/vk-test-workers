@@ -36,7 +36,7 @@ docker-compose up --build
 
 Запуск backend без docker
 cd backend
-go build -o vk-worker ./cmd/backend
+go build -o vk-worker ./cmd/server/main.go
 ./vk-worker
 
 Запуск frontend без docker
