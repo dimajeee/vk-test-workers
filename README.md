@@ -29,8 +29,10 @@
 - Упрощает запуск и тестирование проекта.
 
 ## Клонируйте репозиторий:
-- git clone https://github.com/dimajeee/vk-test-workers
-- cd vk-test-workers
+```bash
+git clone https://github.com/dimajeee/vk-test-workers
+cd vk-test-workers
+```
 
 # Запуск через docker-compose
 ```bash
